@@ -22,9 +22,19 @@ using Word = Microsoft.Office.Interop.Word;
 
 namespace ContentSearcher
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
+    /* TODO:
+     * Függvényt készíteni, ami létrehozza a control-okat
+     * -Control-ok neve '_1' számra végződjön, így könnyű beazonosítani melyik sor az
+     * -counter-t vezetni, hogy épp hol tartunk
+     * -Több szintesítés, zárójelezés kialakítása, fa-szerkezet vagy kapcsos zárójelezés
+     * A létező control-okat számba venni, amikor a keresés elindul
+     * Több 'szabályos' keresés lebonyolítása - ÉS VAGY a szabályok közt
+     * Control sor kitörlése, és igazítása
+     * -counter csökkentés, elemek törlése, nameunregister
+     * -utána következő elemek ha vannak, akkor átnevezés, mozgatás, nameregister stb
+     * Különböző szabályokra kereső függvények
+     * 
+     */
     public partial class MainWindow : Window
     {
         string textToSearch = string.Empty;
@@ -34,12 +44,39 @@ namespace ContentSearcher
         List<string> pdfList = new List<string>();
         List<string> outputList = new List<string>();
         BackgroundWorker bw = new BackgroundWorker();
+
+        List<object> logicList = new List<object>();
+        List<object> subjectList = new List<object>();
+        List<object> operatorList = new List<object>();
+
+
         public MainWindow()
         {
             InitializeComponent();
 
+            
             bw.DoWork += Bw_DoWork;
             bw.RunWorkerCompleted += Bw_RunWorkerCompleted;
+            ListFillUp();
+        }
+
+        private void ListFillUp()
+        {
+            logicList.Add("AND");
+            logicList.Add("OR");
+            comboBoxLogic_1.ItemsSource = logicList;
+            subjectList.Add("FILE NAME");
+            subjectList.Add("FILE CONTENT");
+            comboBoxSubject_1.ItemsSource = subjectList;
+            operatorList.Add("EQUALS");
+            operatorList.Add("NOT EQUALS");
+            operatorList.Add("CONTAINS");
+            operatorList.Add("NOT CONTAINS");
+            operatorList.Add("STARTS WITH");
+            operatorList.Add("NOT STARTS WITH");
+            operatorList.Add("ENDS WITH");
+            operatorList.Add("NOT ENDS WITH");
+            comboBoxOperator_1.ItemsSource = operatorList;
         }
 
         private void Bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -149,7 +186,8 @@ namespace ContentSearcher
             }
             foreach (string fileName in Directory.GetFiles(dir))
             {
-                if (fileName.Contains(textToSearch))
+                string temp = fileName.Substring(fileName.LastIndexOf("\\"));
+                if (temp.Contains(textToSearch)) //CSAK a fájl nevének vizsgálata, elérési útvonalé nem!
                 {
                     listBoxOutput.Items.Add(fileName);
                 }
@@ -187,6 +225,7 @@ namespace ContentSearcher
             ExcelSearch();
             PdfSearch();
             //bw.RunWorkerAsync(defLocation);
+            
         }
     }
 }

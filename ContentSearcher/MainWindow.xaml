@@ -5,11 +5,37 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ContentSearcher"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="467" Width="657">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition></RowDefinition>
+            <RowDefinition Height="5"></RowDefinition>
+            <RowDefinition></RowDefinition>
+        </Grid.RowDefinitions>
         <Button x:Name="buttonSearch" Content="Search" Margin="0,10,39,0" VerticalAlignment="Top" Click="buttonSearch_Click_1" HorizontalAlignment="Right" Width="76" Height="23"/>
-        <TextBox x:Name="textBoxSearch" Height="23" Margin="10,10,120,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top"/>
-        <ListBox x:Name="listBoxOutput" Margin="10,38,10,10"/>
+        <TextBox x:Name="textBoxSearch" Height="23" Margin="10,10,185,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top"/>
 
+        <GroupBox Header="GroupBox" Margin="10,38,10,5">
+            <Grid Margin="0,10,-2,-3">
+                <ComboBox x:Name="comboBoxLogic_1" HorizontalAlignment="Left" Margin="99,10,0,0" VerticalAlignment="Top" Width="85"/>
+                <ComboBox x:Name="comboBoxSubject_1" HorizontalAlignment="Left" Margin="189,10,0,0" VerticalAlignment="Top" Width="120"/>
+                <ComboBox x:Name="comboBoxOperator_1" HorizontalAlignment="Left" Margin="314,10,0,0" VerticalAlignment="Top" Width="120"/>
+                <TextBox x:Name="textBoxExpression_1" Height="23" Margin="439,10,29,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top"/>
+                <Button x:Name="buttonAddLine" Content="+" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top" Width="40"/>
+                <Button x:Name="buttonRemoveLine" Content="-" HorizontalAlignment="Left" Margin="55,35,0,0" VerticalAlignment="Top" Width="40"/>
+            </Grid>
+        </GroupBox>
+        <Button x:Name="buttonBrowse" Content="..." HorizontalAlignment="Left" Margin="469,10,0,0" VerticalAlignment="Top" Width="31" Height="23"/>
+        <GridSplitter Grid.Row="1" ResizeDirection="Rows" HorizontalAlignment="Stretch"></GridSplitter>
+        <ListBox Grid.Row="2" x:Name="listBoxOutput" Margin="10,5,10,10" RenderTransformOrigin="0.5,0.5">
+            <ListBox.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleY="-1"/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </ListBox.RenderTransform>
+        </ListBox>
     </Grid>
 </Window>
