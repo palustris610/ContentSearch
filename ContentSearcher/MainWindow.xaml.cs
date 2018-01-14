@@ -57,8 +57,10 @@ namespace ContentSearcher
         List<object> subjectList = new List<object>();
         List<object> operatorList = new List<object>();
 
-        int lineCounter = 0; //hány filter sor van 
-        int groupCounter = 0; //erre jobb megoldás fog kelleni!!!!!!
+        int[] IDList = new int[200]; //nem végtelen, de bőven elég
+                                    //használat: új TVI vagy StackPanel esetén elnevezni őket a legelső 'üres' tipusu tömb tag id-jével
+                                    //0=üres, 1=TVI, 2=StackPanel
+        
 
         public MainWindow()
         {
@@ -294,6 +296,7 @@ namespace ContentSearcher
             Thickness thickness = new Thickness(2.5,0,2.5,0);
             int buttonWidth = 35;
             int comboboxWidth = 65;
+
             cb_logic.ItemsSource = logicList;
             bt_AddGroup.Content = "[+]"; //vagy Add Group
             bt_AddLine.Content = "+"; //vagy Add Line
@@ -307,22 +310,36 @@ namespace ContentSearcher
             bt_AddGroup.Width = buttonWidth;
             bt_AddLine.Width = buttonWidth;
             bt_RemoveGroup.Width = buttonWidth;
-
+            //NAMING
+            for (int i = 0; i < IDList.Length; i++)
+            {
+                if (IDList[i] == 0)
+                {
+                    IDList[i] = 1;
+                    tvi.Name = "ID_" + i.ToString();
+                    this.RegisterName(tvi.Name, tvi);
+                    break;
+                }
+            }
             bt_AddGroup.Click += Bt_AddGroup_Click;
             bt_AddLine.Click += Bt_AddLine_Click;
-
+            bt_RemoveGroup.Click += Bt_RemoveGroup_Click;
 
             sp.FlowDirection = FlowDirection.LeftToRight;
             sp.Orientation = Orientation.Horizontal;
             tvi.IsExpanded = true;
-
-
+          
             sp.Children.Add(cb_logic);
             sp.Children.Add(bt_AddGroup);
+            sp.Children.Add(bt_RemoveGroup);
             sp.Children.Add(bt_AddLine);
             tvi.Header = sp;
             sourceTVI.Items.Add(tvi);
-            //treeViewFilter.Items.Add(tvi);
+        }
+
+        private void Bt_RemoveGroup_Click(object sender, RoutedEventArgs e)
+        {
+            //get parent, remove tvi and children, unregister names
         }
 
         private void Bt_AddGroup_Click(object sender, RoutedEventArgs e)
@@ -350,26 +367,7 @@ namespace ContentSearcher
             AddLine(childobject);
         }
 
-        private void Bt_delete_Click(object sender, RoutedEventArgs e)
-        {
-            object childobject = sender;
-            while (!(childobject is StackPanel))
-            {
-                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
-            }
-            StackPanel sp = childobject as StackPanel;
-            //RemoveLine(childobject);
-            MessageBox.Show(sp.ToString());
-            childobject = sender;
-            while (!(childobject is TreeViewItem))
-            {
-                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
-            }
-            TreeViewItem parentTVI = childobject as TreeViewItem;
-            MessageBox.Show(parentTVI.ToString());
-            parentTVI.Items.Remove(sp);
-            
-        }
+        
 
         private void AddLine(object source)
         {
@@ -390,17 +388,7 @@ namespace ContentSearcher
             cb_logic.ItemsSource = logicList;
             cb_subject.ItemsSource = subjectList;
             cb_operator.ItemsSource = operatorList;
-            //cb_logic.Name = "comboBoxLogic_" + lineCounter.ToString();
-            //cb_subject.Name = "comboBoxSubject_" + lineCounter.ToString();
-            //cb_operator.Name = "comboBoxOperator_" + lineCounter.ToString();
-            //tb_expression.Name = "textBoxExpression_" + lineCounter.ToString();
-            //lineCounter++; //Sor számozás növelése
-            //RegisterName(cb_logic.Name, cb_logic);
-            //RegisterName(cb_subject.Name, cb_subject);
-            //RegisterName(cb_operator.Name, cb_operator);
-            //RegisterName(tb_expression.Name, tb_expression);
-
-
+            
             cb_logic.SelectedIndex = 0;
             cb_subject.SelectedIndex = 0;
             cb_operator.SelectedIndex = 0;
@@ -413,18 +401,26 @@ namespace ContentSearcher
             bt_delete.Width = buttonWidth;
             tb_expression.Width = expressionWidth;
 
-            
-
             cb_logic.Margin = thickness;
             cb_operator.Margin = thickness;
             cb_subject.Margin = thickness;
             bt_delete.Margin = thickness;
             tb_expression.Margin = thickness;
-
             
             sp.FlowDirection = FlowDirection.LeftToRight;
             sp.Orientation = Orientation.Horizontal;
             bt_delete.Click += Bt_delete_Click;
+            //NAMING
+            for (int i = 0; i < IDList.Length; i++)
+            {
+                if (IDList[i] == 0)
+                {
+                    IDList[i] = 2;
+                    sp.Name = "ID_" + i.ToString();
+                    this.RegisterName(sp.Name, sp);
+                    break;
+                }
+            }
 
             sp.Children.Add(cb_logic);
             sp.Children.Add(cb_subject);
@@ -438,17 +434,6 @@ namespace ContentSearcher
         private void RemoveLine(object source) //Adott sor törlése!!!!
         {
             StackPanel sourceSP = source as StackPanel;
-            //ComboBox cb_logic = new ComboBox();
-            //ComboBox cb_subject = new ComboBox();
-            //ComboBox cb_operator = new ComboBox();
-            //TextBox tb_expression = new TextBox();
-            //Button bt_delete = new Button();
-            //StackPanel sp = new StackPanel();
-            //int logicWidth = 65;
-            //int subjectWidth = 110;
-            //int operatorWidth = 130;
-            //int expressionWidth = 200; //dinamikusnak kéne lennie
-            //int buttonWidth = 35;
 
             foreach (object item in sourceSP.Children)
             {
@@ -466,10 +451,40 @@ namespace ContentSearcher
 
         }
 
-
-        private void buttonDEBUG_Add_Click(object sender, RoutedEventArgs e)
+        private void Bt_delete_Click(object sender, RoutedEventArgs e)
         {
+            object childobject = sender;
+            while (!(childobject is StackPanel))
+            {
+                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
+            }
+            StackPanel SPToDelete = childobject as StackPanel; //ez még stimmel!
+            //MessageBox.Show(SPToDelete.Name);
+            //IDList 1-esein végigmenni, melyik TVI
+            for (int i = 0; i < IDList.Length; i++)
+            {
+                if (IDList[i] == 2)
+                {
+                    TreeViewItem guessTVI = FindName("ID_" + IDList[i].ToString()) as TreeViewItem;
+                    int stopper=0;
+                    if (guessTVI.Items.Contains(SPToDelete))
+                    {
+                        string temp = SPToDelete.Name;
+                        guessTVI.Items.Remove(SPToDelete);
+                        UnregisterName(temp);
+                        
+                        i = 500;
+                        break;
+                    }
+                }
+                
+            }
+            //Amelyik TVI, annak az elemeit megnézni, tartalmazza-e a fent keresett StackPanel
+            //Ha igen, törlés, és vége
+            //Ha nem, akkor loop vissza
             
         }
+        
+        //int array - ID=ID, value=typeofitem
     }
 }
