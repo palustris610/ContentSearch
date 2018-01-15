@@ -268,11 +268,18 @@ namespace ContentSearcher
             
             sp.FlowDirection = FlowDirection.LeftToRight;
             sp.Orientation = Orientation.Horizontal;
-            
 
-            tvi.Name = "rootTVI";
-            this.RegisterName(tvi.Name, tvi);
-            
+            //NAMING
+            for (int i = 0; i < IDList.Length; i++)
+            {
+                if (IDList[i] == 0)
+                {
+                    IDList[i] = 1;
+                    tvi.Name = "ID_" + i.ToString();
+                    
+                    break;
+                }
+            }
             tvi.IsExpanded = true;
             sp.Children.Add(cb_logic);
             sp.Children.Add(bt_AddGroup);
@@ -280,6 +287,7 @@ namespace ContentSearcher
             tvi.Header = sp;
             //tvi.Items.Add(sp);
             treeViewFilter.Items.Add(tvi);
+            RegisterName(tvi.Name, tvi);
         }
 
         private void AddGroup(object source)
@@ -317,7 +325,7 @@ namespace ContentSearcher
                 {
                     IDList[i] = 1;
                     tvi.Name = "ID_" + i.ToString();
-                    this.RegisterName(tvi.Name, tvi);
+                    
                     break;
                 }
             }
@@ -335,12 +343,10 @@ namespace ContentSearcher
             sp.Children.Add(bt_AddLine);
             tvi.Header = sp;
             sourceTVI.Items.Add(tvi);
+            RegisterName(tvi.Name, tvi);
         }
 
-        private void Bt_RemoveGroup_Click(object sender, RoutedEventArgs e)
-        {
-            //get parent, remove tvi and children, unregister names
-        }
+        
 
         private void Bt_AddGroup_Click(object sender, RoutedEventArgs e)
         {
@@ -417,7 +423,7 @@ namespace ContentSearcher
                 {
                     IDList[i] = 2;
                     sp.Name = "ID_" + i.ToString();
-                    this.RegisterName(sp.Name, sp);
+                    
                     break;
                 }
             }
@@ -428,32 +434,13 @@ namespace ContentSearcher
             sp.Children.Add(tb_expression);
             sp.Children.Add(bt_delete);
             sourceTVI.Items.Add(sp);
-            
-        }
-
-        private void RemoveLine(object source) //Adott sor törlése!!!!
-        {
-            StackPanel sourceSP = source as StackPanel;
-
-            foreach (object item in sourceSP.Children)
-            {
-                //UnregisterName(item.Name as ComboBox)
-            }
-
-            object childobject = source;
-            while (!(childobject is TreeViewItem))
-            {
-                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
-            }
-            TreeViewItem parentTVI = childobject as TreeViewItem;
-            parentTVI.Items.Remove(source);
-            
-
+            RegisterName(sp.Name, sp);
         }
 
         private void Bt_delete_Click(object sender, RoutedEventArgs e)
         {
             object childobject = sender;
+            bool conti = false;
             while (!(childobject is StackPanel))
             {
                 childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
@@ -461,30 +448,84 @@ namespace ContentSearcher
             StackPanel SPToDelete = childobject as StackPanel; //ez még stimmel!
             //MessageBox.Show(SPToDelete.Name);
             //IDList 1-esein végigmenni, melyik TVI
-            for (int i = 0; i < IDList.Length; i++)
+            childobject = sender;
+            while (!(childobject is TreeViewItem & conti))
             {
-                if (IDList[i] == 2)
+                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
+                if (childobject is TreeViewItem)
                 {
-                    TreeViewItem guessTVI = FindName("ID_" + IDList[i].ToString()) as TreeViewItem;
-                    int stopper=0;
-                    if (guessTVI.Items.Contains(SPToDelete))
+                    TreeViewItem tempobj = childobject as TreeViewItem;
+                    if (tempobj.Name != "") //üres TVI (WTF?!) átugrása
                     {
-                        string temp = SPToDelete.Name;
-                        guessTVI.Items.Remove(SPToDelete);
-                        UnregisterName(temp);
-                        
-                        i = 500;
-                        break;
+                        conti = true;
                     }
                 }
-                
             }
-            //Amelyik TVI, annak az elemeit megnézni, tartalmazza-e a fent keresett StackPanel
-            //Ha igen, törlés, és vége
-            //Ha nem, akkor loop vissza
-            
+            TreeViewItem parentTVI = childobject as TreeViewItem;
+            string temp = SPToDelete.Name;
+            int index = Convert.ToInt32(temp.Substring(temp.IndexOf("_")+1));
+            IDList[index] = 0; //nullázás törlés miatt
+            parentTVI.Items.Remove(SPToDelete);
+            UnregisterName(temp);
         }
-        
-        //int array - ID=ID, value=typeofitem
+
+        private void Bt_RemoveGroup_Click(object sender, RoutedEventArgs e)
+        {
+            //get parent, remove tvi and children, unregister names
+            // delete group
+            object childobject = sender;
+            bool conti = false;
+            while (!(childobject is TreeViewItem & conti))
+            {
+                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
+                if (childobject is TreeViewItem)
+                {
+                    //TreeViewItem tempTVI = childobject as TreeViewItem;
+                    conti = true;
+                }
+            }
+            TreeViewItem sourceTVI = childobject as TreeViewItem; //törlendő tvi
+            conti = false; //folytatás tovább
+            while (!(childobject is TreeViewItem & conti))
+            {
+                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
+                if (childobject is TreeViewItem)
+                {
+                    TreeViewItem tempTVI = childobject as TreeViewItem;
+                    conti = true;
+
+                }
+            }
+            TreeViewItem parentTVI = childobject as TreeViewItem;
+
+            UnRegTVIItems(sourceTVI);
+
+            string temp = sourceTVI.Name;
+            parentTVI.Items.Remove(sourceTVI);
+            UnregisterName(temp);
+        }
+
+        private void UnRegTVIItems(TreeViewItem source)
+        {
+            foreach (object item in source.Items)
+            {
+                if (item is TreeViewItem)
+                {
+                    TreeViewItem itemTVI = item as TreeViewItem;
+                    UnRegTVIItems(itemTVI); //rekurziv
+                    UnregisterName(itemTVI.Name);
+                    int index = Convert.ToInt32(itemTVI.Name.Substring(itemTVI.Name.IndexOf("_") + 1));
+                    IDList[index] = 0;
+                }
+                if (item is StackPanel)
+                {
+                    StackPanel itemSP = item as StackPanel;
+                    UnregisterName(itemSP.Name);
+                    int index = Convert.ToInt32(itemSP.Name.Substring(itemSP.Name.IndexOf("_") + 1));
+                    IDList[index] = 0;
+                }
+            }
+        }
+
     }
 }
