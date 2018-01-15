@@ -20,6 +20,7 @@ using System.Xml;
 using Excel = Microsoft.Office.Interop.Excel;
 using Word = Microsoft.Office.Interop.Word;
 
+
 namespace ContentSearcher
 {
     /* TODO:
@@ -76,20 +77,20 @@ namespace ContentSearcher
 
         private void ListFillUp()
         {
-            logicList.Add("AND");
-            logicList.Add("OR");
+            logicList.Add("AND"); //0
+            logicList.Add("OR"); //1
 
-            subjectList.Add("FILE NAME");
-            subjectList.Add("FILE CONTENT");
+            subjectList.Add("FILE NAME"); //0
+            subjectList.Add("FILE CONTENT"); //1
 
-            operatorList.Add("EQUALS");
-            operatorList.Add("NOT EQUALS");
-            operatorList.Add("CONTAINS");
-            operatorList.Add("NOT CONTAINS");
-            operatorList.Add("STARTS WITH");
-            operatorList.Add("NOT STARTS WITH");
-            operatorList.Add("ENDS WITH");
-            operatorList.Add("NOT ENDS WITH");
+            operatorList.Add("CONTAINS"); //0
+            operatorList.Add("NOT CONTAINS"); //1
+            operatorList.Add("EQUALS"); //2
+            operatorList.Add("NOT EQUALS"); //3
+            operatorList.Add("STARTS WITH"); //4
+            operatorList.Add("NOT STARTS WITH"); //5
+            operatorList.Add("ENDS WITH"); //6
+            operatorList.Add("NOT ENDS WITH"); //7
         }
 
         private void Bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -263,6 +264,12 @@ namespace ContentSearcher
             bt_AddGroup.Width = buttonWidth;
             bt_AddLine.Width = buttonWidth;
 
+            bt_AddGroup.Background = Brushes.LawnGreen;
+            bt_AddLine.Background = Brushes.LightGreen;
+
+            bt_AddGroup.FontWeight = FontWeights.Bold;
+            bt_AddLine.FontWeight = FontWeights.Bold;
+
             bt_AddGroup.Click += Bt_AddGroup_Click;
             bt_AddLine.Click += Bt_AddLine_Click;
             
@@ -314,10 +321,21 @@ namespace ContentSearcher
             bt_RemoveGroup.Margin = thickness;
             cb_logic.Margin = thickness;
             cb_logic.SelectedIndex = 0;
+
             cb_logic.Width = comboboxWidth;
             bt_AddGroup.Width = buttonWidth;
             bt_AddLine.Width = buttonWidth;
             bt_RemoveGroup.Width = buttonWidth;
+
+            bt_AddGroup.FontWeight = FontWeights.Bold;
+            bt_AddLine.FontWeight = FontWeights.Bold;
+            bt_RemoveGroup.FontWeight = FontWeights.Bold;
+
+
+            bt_AddGroup.Background = Brushes.LawnGreen;
+            bt_AddLine.Background = Brushes.LightGreen;
+            bt_RemoveGroup.Background = Brushes.OrangeRed;
+            
             //NAMING
             for (int i = 0; i < IDList.Length; i++)
             {
@@ -339,8 +357,8 @@ namespace ContentSearcher
           
             sp.Children.Add(cb_logic);
             sp.Children.Add(bt_AddGroup);
-            sp.Children.Add(bt_RemoveGroup);
             sp.Children.Add(bt_AddLine);
+            sp.Children.Add(bt_RemoveGroup);
             tvi.Header = sp;
             sourceTVI.Items.Add(tvi);
             RegisterName(tvi.Name, tvi);
@@ -415,7 +433,11 @@ namespace ContentSearcher
             
             sp.FlowDirection = FlowDirection.LeftToRight;
             sp.Orientation = Orientation.Horizontal;
+
             bt_delete.Click += Bt_delete_Click;
+            bt_delete.Background = Brushes.LightPink;
+            bt_delete.FontWeight = FontWeights.Bold;
+
             //NAMING
             for (int i = 0; i < IDList.Length; i++)
             {
@@ -527,5 +549,13 @@ namespace ContentSearcher
             }
         }
 
+        private void buttonBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            Ookii.Dialogs.Wpf.VistaFolderBrowserDialog dialog = new Ookii.Dialogs.Wpf.VistaFolderBrowserDialog();
+            if (dialog.ShowDialog(this).GetValueOrDefault())
+            {
+                textBoxSearch.Text = dialog.SelectedPath;
+            }
+        }
     }
 }

@@ -5,7 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ContentSearcher"
         mc:Ignorable="d"
-        Title="MainWindow" Height="467" Width="818">
+        Title="Content Search" Height="467" Width="818">
+
+
+
+
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition></RowDefinition>
@@ -14,7 +19,7 @@
         </Grid.RowDefinitions>
         <Button x:Name="buttonSearch" Content="Search" Margin="0,10,39,0" VerticalAlignment="Top" Click="buttonSearch_Click_1" HorizontalAlignment="Right" Width="76" Height="23"/>
         <TextBox x:Name="textBoxSearch" Height="23" Margin="10,10,156,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top"/>
-        <Button x:Name="buttonBrowse" Content="..." HorizontalAlignment="Right" Margin="0,10,120,0" VerticalAlignment="Top" Width="31" Height="23"/>
+        <Button x:Name="buttonBrowse" Content="..." HorizontalAlignment="Right" Margin="0,10,120,0" VerticalAlignment="Top" Width="31" Height="23" Click="buttonBrowse_Click"/>
         <GridSplitter Grid.Row="1" ResizeDirection="Rows" HorizontalAlignment="Stretch" BorderBrush="DarkGray" BorderThickness="5"></GridSplitter>
         <ListBox Grid.Row="2" x:Name="listBoxOutput" Margin="10,5,10,10" RenderTransformOrigin="0.5,0.5">
             <ListBox.RenderTransform>
@@ -29,3 +34,4 @@
         <TreeView x:Name="treeViewFilter" Margin="10,38,10,5"/>
     </Grid>
 </Window>
+    
