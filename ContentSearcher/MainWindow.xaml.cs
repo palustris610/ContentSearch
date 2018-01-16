@@ -30,10 +30,11 @@ namespace ContentSearcher
         string defLocation = @"E:\ZZZ_TESZTMAPPA";
         string searchRoot = string.Empty;
 
-        List<string> wordList = new List<string>();
-        List<string> excelList = new List<string>();
-        List<string> pdfList = new List<string>();
-        List<string> outputList = new List<string>();
+        List<string> fileList = new List<string>();
+
+        List<string> outputList = new List<string>(); //végeredmény
+        List<string> subresultList = new List<string>(); //köztes eredmény
+
         BackgroundWorker bw = new BackgroundWorker();
 
         List<object> logicList = new List<object>();
@@ -70,12 +71,12 @@ namespace ContentSearcher
 
             operatorList.Add("Tartalmazza"); //0 CONTAINS
             operatorList.Add("Nem tartalmazza"); //1 NOT CONTAINS
-            operatorList.Add("Megegyezik"); //2 EQUALS
-            operatorList.Add("Nem egyezik meg"); //3 NOT EQUALS
-            operatorList.Add("Kezdődik vele"); //4 STARTS WITH
-            operatorList.Add("Nem kezdődik vele"); //5 NOT STARTS WITH
-            operatorList.Add("Véget ér vele"); //6 ENDS WITH
-            operatorList.Add("Nem ér véget vele"); //7 NOT ENDS WITH
+            //operatorList.Add("Megegyezik"); //2 EQUALS
+            //operatorList.Add("Nem egyezik meg"); //3 NOT EQUALS
+            //operatorList.Add("Kezdődik vele"); //4 STARTS WITH
+            //operatorList.Add("Nem kezdődik vele"); //5 NOT STARTS WITH
+            //operatorList.Add("Véget ér vele"); //6 ENDS WITH
+            //operatorList.Add("Nem ér véget vele"); //7 NOT ENDS WITH
         }
 
         private void Bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -89,12 +90,12 @@ namespace ContentSearcher
             //Parallel.ForEach(Directory.GetFiles(e.Argument as string), );
         }
 
-        private void DocSearch(string textToSearch)
+        private void WordSearch(string textToSearch, List<string> source)
         {
             try
             {
                 Word.Application app = new Word.Application();
-                foreach (string file in wordList)
+                foreach (string file in source)
                 {
                     Word.Document doc = app.Documents.Open(file, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing, Type.Missing, Type.Missing,
@@ -119,12 +120,12 @@ namespace ContentSearcher
             
         }
 
-        private void ExcelSearch(string textToSearch)
+        private void ExcelSearch(string textToSearch, List<string> source)
         {
             try
             {
                 Excel.Application app = new Excel.Application();
-                foreach (string xls in excelList)
+                foreach (string xls in source)
                 {
                     Excel.Workbook wb = app.Workbooks.Open(xls);
                     foreach (Excel.Worksheet sheet in wb.Sheets)
@@ -153,11 +154,11 @@ namespace ContentSearcher
             
         }
 
-        private void PdfSearch(string textToSearch)
+        private void PdfSearch(string textToSearch, List<string> source)
         {
             try
             {
-                foreach (string pdf in pdfList)
+                foreach (string pdf in source)
                 {
                     FileStream stream = File.Open(pdf, FileMode.Open);
                     PdfExtract.Extractor extractor = new PdfExtract.Extractor();
@@ -187,15 +188,15 @@ namespace ContentSearcher
             {
                 if (fileName.EndsWith(".doc")|fileName.EndsWith(".docx"))
                 {
-                    wordList.Add(fileName);
+                    fileList.Add(fileName);
                 }
                 if (fileName.EndsWith(".xls") | fileName.EndsWith(".xlsx"))
                 {
-                    excelList.Add(fileName);
+                    fileList.Add(fileName);
                 }
                 if (fileName.EndsWith(".pdf"))
                 {
-                    pdfList.Add(fileName);
+                    fileList.Add(fileName);
                 }
             }//foreach end
 
@@ -535,25 +536,14 @@ namespace ContentSearcher
             searchRoot = textBoxSearch.Text; //textbox mező beolvasása
 
             listBoxOutput.Items.Clear(); //takarítás
-            wordList.Clear();
-            excelList.Clear();
-            pdfList.Clear();
-            GetFileLists(searchRoot); //file listák feltöltése
+            fileList.Clear();
+            outputList.Clear();
+
+            GetFileLists(searchRoot); //fileList feltöltése
             /////////////////////////////////////////////////
-            //keresés kidolgozása
-            /* TODO:
-             * 1.: A létező control-okat számba venni, amikor a keresés elindul
-             * 2.: Különböző szabályokra vonatkozó függvények elkészítése (operatorok)
-             * 3.: Több 'szabályos' keresés lebonyolítása - ÉS VAGY a szabályok közt
-             * 
-             * Ötlet: Listát készíteni minden egyes szabályhoz, majd ezt összeÉSVAGY-olni
-             *      -dinamikus listák?
-             *      -lista tömb?
-             */
-            // https://stackoverflow.com/questions/40921852/turn-boolean-expression-string-into-the-net-code
             TreeViewItem root = FindName("ID_0") as TreeViewItem; //mindig ez a 0-ás!
             sajtkukac(root);
-
+            //backgroundworker-nek hogyan lehetne odaadni a treeview-t? object copy, egyéb?
        
         }
 
@@ -598,24 +588,24 @@ namespace ContentSearcher
                                 case "Nem tartalmazza":
 
                                     break;
-                                case "Megegyezik":
+                                //case "Megegyezik":
 
-                                    break;
-                                case "Nem egyezik meg":
+                                //    break;
+                                //case "Nem egyezik meg":
 
-                                    break;
-                                case "Kezdődik vele":
+                                //    break;
+                                //case "Kezdődik vele":
 
-                                    break;
-                                case "Nem kezdődik vele":
+                                //    break;
+                                //case "Nem kezdődik vele":
 
-                                    break;
-                                case "Véget ér vele":
+                                //    break;
+                                //case "Véget ér vele":
 
-                                    break;
-                                case "Nem ér véget vele":
+                                //    break;
+                                //case "Nem ér véget vele":
 
-                                    break;
+                                //    break;
                                 //-------------------Operátor vége
                                 default:
                                     break;
@@ -623,6 +613,7 @@ namespace ContentSearcher
                         }
                         if (spItem is TextBox)
                         {
+                            TextBox tb = spItem as TextBox;
 
                         }
                     }//stackpanel elemeinek vége
