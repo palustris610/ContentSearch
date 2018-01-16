@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,31 +24,12 @@ using Word = Microsoft.Office.Interop.Word;
 
 namespace ContentSearcher
 {
-    /* TODO:
-     * Függvényt készíteni, ami létrehozza a control-okat
-     * -Control-ok neve '_1' számra végződjön, így könnyű beazonosítani melyik sor az
-     * -counter-t vezetni, hogy épp hol tartunk
-     * -Több szintesítés, zárójelezés kialakítása, fa-szerkezet vagy kapcsos zárójelezés
-     * A létező control-okat számba venni, amikor a keresés elindul
-     * Több 'szabályos' keresés lebonyolítása - ÉS VAGY a szabályok közt
-     * Control sor kitörlése, és igazítása
-     * -counter csökkentés, elemek törlése, nameunregister
-     * -utána következő elemek ha vannak, akkor átnevezés, mozgatás, nameregister stb
-     * Különböző szabályokra kereső függvények
-     * 
-     * Treeview rendszer
-     * Gyökér ÉS/VAGY -FIX!
-     *      -kifejezés -hozzáadandó
-     *      -kifejezés
-     *      Csoport ÉS/VAGY -hozzáadandó
-     *          -kifejezés
-     *          -kifejezés
-     * 
-     */
     public partial class MainWindow : Window
     {
-        string textToSearch = string.Empty;
+        
         string defLocation = @"E:\ZZZ_TESZTMAPPA";
+        string searchRoot = string.Empty;
+
         List<string> wordList = new List<string>();
         List<string> excelList = new List<string>();
         List<string> pdfList = new List<string>();
@@ -73,24 +55,27 @@ namespace ContentSearcher
 
             ListFillUp(); //combobox-ok listájának feltöltése
             AddRootGroup(); //treeview gyökér item
+
+            textBoxSearch.Text = defLocation; //DEBUG
+
         }
 
         private void ListFillUp()
         {
-            logicList.Add("AND"); //0
-            logicList.Add("OR"); //1
+            logicList.Add("ÉS"); //0 AND
+            logicList.Add("VAGY"); //1 OR
+            
+            subjectList.Add("Fájl tartalma"); //0 FILE CONTENT
+            subjectList.Add("Fájl neve"); //1 FILE NAME
 
-            subjectList.Add("FILE NAME"); //0
-            subjectList.Add("FILE CONTENT"); //1
-
-            operatorList.Add("CONTAINS"); //0
-            operatorList.Add("NOT CONTAINS"); //1
-            operatorList.Add("EQUALS"); //2
-            operatorList.Add("NOT EQUALS"); //3
-            operatorList.Add("STARTS WITH"); //4
-            operatorList.Add("NOT STARTS WITH"); //5
-            operatorList.Add("ENDS WITH"); //6
-            operatorList.Add("NOT ENDS WITH"); //7
+            operatorList.Add("Tartalmazza"); //0 CONTAINS
+            operatorList.Add("Nem tartalmazza"); //1 NOT CONTAINS
+            operatorList.Add("Megegyezik"); //2 EQUALS
+            operatorList.Add("Nem egyezik meg"); //3 NOT EQUALS
+            operatorList.Add("Kezdődik vele"); //4 STARTS WITH
+            operatorList.Add("Nem kezdődik vele"); //5 NOT STARTS WITH
+            operatorList.Add("Véget ér vele"); //6 ENDS WITH
+            operatorList.Add("Nem ér véget vele"); //7 NOT ENDS WITH
         }
 
         private void Bw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -104,7 +89,7 @@ namespace ContentSearcher
             //Parallel.ForEach(Directory.GetFiles(e.Argument as string), );
         }
 
-        private void DocSearch()
+        private void DocSearch(string textToSearch)
         {
             try
             {
@@ -134,7 +119,7 @@ namespace ContentSearcher
             
         }
 
-        private void ExcelSearch()
+        private void ExcelSearch(string textToSearch)
         {
             try
             {
@@ -168,7 +153,7 @@ namespace ContentSearcher
             
         }
 
-        private void PdfSearch()
+        private void PdfSearch(string textToSearch)
         {
             try
             {
@@ -192,19 +177,14 @@ namespace ContentSearcher
             }
         }
 
-        private void SearchFunction(string dir)
+        private void GetFileLists(string dir) // az összes felhasználható fájl listája pdf, word, excel
         {
             foreach (string subdir in Directory.GetDirectories(dir))
             {
-                SearchFunction(subdir);
+                GetFileLists(subdir);
             }
             foreach (string fileName in Directory.GetFiles(dir))
             {
-                string temp = fileName.Substring(fileName.LastIndexOf("\\"));
-                if (temp.Contains(textToSearch)) //CSAK a fájl nevének vizsgálata, elérési útvonalé nem!
-                {
-                    listBoxOutput.Items.Add(fileName);
-                }
                 if (fileName.EndsWith(".doc")|fileName.EndsWith(".docx"))
                 {
                     wordList.Add(fileName);
@@ -221,23 +201,6 @@ namespace ContentSearcher
 
         }
 
-        private void buttonSearch_Click_1(object sender, RoutedEventArgs e)
-        {
-            textToSearch = textBoxSearch.Text;
-            listBoxOutput.Items.Clear();
-            wordList.Clear();
-            excelList.Clear();
-            pdfList.Clear();
-            SearchFunction(defLocation);
-
-            double stopper = buttonSearch.ActualHeight;
-
-            DocSearch();
-            ExcelSearch();
-            PdfSearch();
-            //bw.RunWorkerAsync(defLocation);
-            
-        }
 
         private void AddRootGroup() //treeview item a kattintott treeview item alá! add line, add group, remove group
         {
@@ -364,8 +327,6 @@ namespace ContentSearcher
             RegisterName(tvi.Name, tvi);
         }
 
-        
-
         private void Bt_AddGroup_Click(object sender, RoutedEventArgs e)
         {
             //sender kiderítése! és alatta lévő treeviewitem
@@ -391,41 +352,39 @@ namespace ContentSearcher
             AddLine(childobject);
         }
 
-        
-
         private void AddLine(object source)
         {
             TreeViewItem sourceTVI = source as TreeViewItem;
-            ComboBox cb_logic = new ComboBox();
+            //ComboBox cb_logic = new ComboBox();
             ComboBox cb_subject = new ComboBox();
             ComboBox cb_operator = new ComboBox();
             TextBox tb_expression = new TextBox();
             Button bt_delete = new Button();
             StackPanel sp = new StackPanel();
             Thickness thickness = new Thickness(2.5, 0, 2.5, 0);
-            int logicWidth = 65;
+            //int logicWidth = 65;
             int subjectWidth = 110;
             int operatorWidth = 130;
             int expressionWidth = 250; //dinamikusnak kéne lennie?
             int buttonWidth = 35;
 
-            cb_logic.ItemsSource = logicList;
+            //cb_logic.ItemsSource = logicList;
             cb_subject.ItemsSource = subjectList;
             cb_operator.ItemsSource = operatorList;
             
-            cb_logic.SelectedIndex = 0;
+            //cb_logic.SelectedIndex = 0;
             cb_subject.SelectedIndex = 0;
             cb_operator.SelectedIndex = 0;
             tb_expression.Text = "";
             bt_delete.Content = "X";
 
-            cb_logic.Width = logicWidth;
+            //cb_logic.Width = logicWidth;
             cb_operator.Width = operatorWidth;
             cb_subject.Width = subjectWidth;
             bt_delete.Width = buttonWidth;
             tb_expression.Width = expressionWidth;
 
-            cb_logic.Margin = thickness;
+            //cb_logic.Margin = thickness;
             cb_operator.Margin = thickness;
             cb_subject.Margin = thickness;
             bt_delete.Margin = thickness;
@@ -450,7 +409,7 @@ namespace ContentSearcher
                 }
             }
 
-            sp.Children.Add(cb_logic);
+            //sp.Children.Add(cb_logic);
             sp.Children.Add(cb_subject);
             sp.Children.Add(cb_operator);
             sp.Children.Add(tb_expression);
@@ -557,5 +516,123 @@ namespace ContentSearcher
                 textBoxSearch.Text = dialog.SelectedPath;
             }
         }
+
+        private void textBoxSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (Directory.Exists(textBoxSearch.Text))
+            {
+                buttonSearch.IsEnabled = true;
+            }
+            else
+            {
+                buttonSearch.IsEnabled = false;
+            }
+        }
+
+
+        private void buttonSearch_Click_1(object sender, RoutedEventArgs e)
+        {
+            searchRoot = textBoxSearch.Text; //textbox mező beolvasása
+
+            listBoxOutput.Items.Clear(); //takarítás
+            wordList.Clear();
+            excelList.Clear();
+            pdfList.Clear();
+            GetFileLists(searchRoot); //file listák feltöltése
+            /////////////////////////////////////////////////
+            //keresés kidolgozása
+            /* TODO:
+             * 1.: A létező control-okat számba venni, amikor a keresés elindul
+             * 2.: Különböző szabályokra vonatkozó függvények elkészítése (operatorok)
+             * 3.: Több 'szabályos' keresés lebonyolítása - ÉS VAGY a szabályok közt
+             * 
+             * Ötlet: Listát készíteni minden egyes szabályhoz, majd ezt összeÉSVAGY-olni
+             *      -dinamikus listák?
+             *      -lista tömb?
+             */
+            // https://stackoverflow.com/questions/40921852/turn-boolean-expression-string-into-the-net-code
+            TreeViewItem root = FindName("ID_0") as TreeViewItem; //mindig ez a 0-ás!
+            sajtkukac(root);
+
+       
+        }
+
+        private void sajtkukac(TreeViewItem rootTVI)
+        {
+            //Get controls
+            //If contains TVI -> start again from here (nested)
+            //Else - get expression
+            //combine results into one big expression
+            //
+            //return result
+
+            foreach (object item in rootTVI.Items)
+            {
+                if (item is TreeViewItem)//beágyazott csoport
+                {
+                    TreeViewItem childTVI = item as TreeViewItem;
+                    sajtkukac(childTVI);
+                }//TVI vége
+                if (item is StackPanel)//tartalmazott kifejezések
+                {
+                    StackPanel childSP = item as StackPanel;
+                    foreach (object spItem in childSP.Children)
+                    {
+                        if (spItem is ComboBox)
+                        {
+                            ComboBox cb = spItem as ComboBox;
+                            switch (cb.Text)
+                            {
+                                //------------------Forrás
+                                case "Fájl neve":
+
+                                    break;
+                                case "Fájl tartalma":
+
+                                    break;
+                                //-------------------Forrás vége
+                                //-------------------Operátor
+                                case "Tartalmazza":
+
+                                    break;
+                                case "Nem tartalmazza":
+
+                                    break;
+                                case "Megegyezik":
+
+                                    break;
+                                case "Nem egyezik meg":
+
+                                    break;
+                                case "Kezdődik vele":
+
+                                    break;
+                                case "Nem kezdődik vele":
+
+                                    break;
+                                case "Véget ér vele":
+
+                                    break;
+                                case "Nem ér véget vele":
+
+                                    break;
+                                //-------------------Operátor vége
+                                default:
+                                    break;
+                            }
+                        }
+                        if (spItem is TextBox)
+                        {
+
+                        }
+                    }//stackpanel elemeinek vége
+
+                }//stackpanel vége
+            }
+        }
+
+
+        
+
     }
 }
