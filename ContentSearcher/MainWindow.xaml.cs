@@ -26,14 +26,14 @@ namespace ContentSearcher
 {
     public partial class MainWindow : Window
     {
-        
+
         string defLocation = @"E:\ZZZ_TESZTMAPPA";
         string searchRoot = string.Empty;
 
         List<string> fileList = new List<string>();
 
         List<string> outputList = new List<string>(); //végeredmény
-        List<string> subresultList = new List<string>(); //köztes eredmény
+        //List<string> subresultList = new List<string>(); //köztes eredmény
 
         BackgroundWorker bw = new BackgroundWorker();
 
@@ -42,15 +42,15 @@ namespace ContentSearcher
         List<object> operatorList = new List<object>();
 
         int[] IDList = new int[200]; //nem végtelen, de bőven elég
-                                    //használat: új TVI vagy StackPanel esetén elnevezni őket a legelső 'üres' tipusu tömb tag id-jével
-                                    //0=üres, 1=TVI, 2=StackPanel
-        
+                                     //használat: új TVI vagy StackPanel esetén elnevezni őket a legelső 'üres' tipusu tömb tag id-jével
+                                     //0=üres, 1=TVI, 2=StackPanel
+
 
         public MainWindow()
         {
             InitializeComponent();
 
-            
+
             bw.DoWork += Bw_DoWork;
             bw.RunWorkerCompleted += Bw_RunWorkerCompleted;
 
@@ -65,7 +65,7 @@ namespace ContentSearcher
         {
             logicList.Add("ÉS"); //0 AND
             logicList.Add("VAGY"); //1 OR
-            
+
             subjectList.Add("Fájl tartalma"); //0 FILE CONTENT
             subjectList.Add("Fájl neve"); //1 FILE NAME
 
@@ -90,7 +90,7 @@ namespace ContentSearcher
             //Parallel.ForEach(Directory.GetFiles(e.Argument as string), );
         }
 
-        private void WordSearch(string textToSearch, List<string> source)
+        private void WordSearch(string textToSearch, List<string> source, bool shouldContain)
         {
             try
             {
@@ -101,11 +101,11 @@ namespace ContentSearcher
             Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing);
-                    foreach (Word.Paragraph parag in doc.Paragraphs)
+                    foreach (Word.Paragraph parag in doc.Paragraphs) // paragrafusok, az egészet kéne nézni, legyen csak egy bool változó, ha volt és a végén a művelet?
                     {
-                        if (parag.Range.Text.Contains(textToSearch))
-                        {
-                            listBoxOutput.Items.Add(file);
+                        if ((parag.Range.Text.Contains(textToSearch) & !shouldContain) | (!parag.Range.Text.Contains(textToSearch) & shouldContain))
+                        {//HA tartalmazza ÉS NOT Contains kell - VAGY - HA  NEM tartalmazza és Contains kell, akkor
+                            source.Remove(file); //ki fogja így törölni rendesen? TESZT!!!!
                         }
                     }
                     doc.Close();
@@ -117,7 +117,7 @@ namespace ContentSearcher
 
                 throw;
             }
-            
+
         }
 
         private void ExcelSearch(string textToSearch, List<string> source)
@@ -138,7 +138,7 @@ namespace ContentSearcher
             missing, missing);
                         if (firstFind != null)
                         {
-                            
+
                             listBoxOutput.Items.Add(xls);
                         }
                     }
@@ -151,7 +151,7 @@ namespace ContentSearcher
 
                 throw;
             }
-            
+
         }
 
         private void PdfSearch(string textToSearch, List<string> source)
@@ -186,7 +186,7 @@ namespace ContentSearcher
             }
             foreach (string fileName in Directory.GetFiles(dir))
             {
-                if (fileName.EndsWith(".doc")|fileName.EndsWith(".docx"))
+                if (fileName.EndsWith(".doc") | fileName.EndsWith(".docx"))
                 {
                     fileList.Add(fileName);
                 }
@@ -236,7 +236,7 @@ namespace ContentSearcher
 
             bt_AddGroup.Click += Bt_AddGroup_Click;
             bt_AddLine.Click += Bt_AddLine_Click;
-            
+
             sp.FlowDirection = FlowDirection.LeftToRight;
             sp.Orientation = Orientation.Horizontal;
 
@@ -247,7 +247,7 @@ namespace ContentSearcher
                 {
                     IDList[i] = 1;
                     tvi.Name = "ID_" + i.ToString();
-                    
+
                     break;
                 }
             }
@@ -272,7 +272,7 @@ namespace ContentSearcher
             Button bt_RemoveGroup = new Button();
             Button bt_AddLine = new Button();
             StackPanel sp = new StackPanel();
-            Thickness thickness = new Thickness(2.5,0,2.5,0);
+            Thickness thickness = new Thickness(2.5, 0, 2.5, 0);
             int buttonWidth = 35;
             int comboboxWidth = 65;
 
@@ -299,7 +299,7 @@ namespace ContentSearcher
             bt_AddGroup.Background = Brushes.LawnGreen;
             bt_AddLine.Background = Brushes.LightGreen;
             bt_RemoveGroup.Background = Brushes.OrangeRed;
-            
+
             //NAMING
             for (int i = 0; i < IDList.Length; i++)
             {
@@ -307,7 +307,7 @@ namespace ContentSearcher
                 {
                     IDList[i] = 1;
                     tvi.Name = "ID_" + i.ToString();
-                    
+
                     break;
                 }
             }
@@ -318,7 +318,7 @@ namespace ContentSearcher
             sp.FlowDirection = FlowDirection.LeftToRight;
             sp.Orientation = Orientation.Horizontal;
             tvi.IsExpanded = true;
-          
+
             sp.Children.Add(cb_logic);
             sp.Children.Add(bt_AddGroup);
             sp.Children.Add(bt_AddLine);
@@ -372,7 +372,7 @@ namespace ContentSearcher
             //cb_logic.ItemsSource = logicList;
             cb_subject.ItemsSource = subjectList;
             cb_operator.ItemsSource = operatorList;
-            
+
             //cb_logic.SelectedIndex = 0;
             cb_subject.SelectedIndex = 0;
             cb_operator.SelectedIndex = 0;
@@ -390,7 +390,7 @@ namespace ContentSearcher
             cb_subject.Margin = thickness;
             bt_delete.Margin = thickness;
             tb_expression.Margin = thickness;
-            
+
             sp.FlowDirection = FlowDirection.LeftToRight;
             sp.Orientation = Orientation.Horizontal;
 
@@ -405,7 +405,7 @@ namespace ContentSearcher
                 {
                     IDList[i] = 2;
                     sp.Name = "ID_" + i.ToString();
-                    
+
                     break;
                 }
             }
@@ -445,7 +445,7 @@ namespace ContentSearcher
             }
             TreeViewItem parentTVI = childobject as TreeViewItem;
             string temp = SPToDelete.Name;
-            int index = Convert.ToInt32(temp.Substring(temp.IndexOf("_")+1));
+            int index = Convert.ToInt32(temp.Substring(temp.IndexOf("_") + 1));
             IDList[index] = 0; //nullázás törlés miatt
             parentTVI.Items.Remove(SPToDelete);
             UnregisterName(temp);
@@ -538,92 +538,147 @@ namespace ContentSearcher
             listBoxOutput.Items.Clear(); //takarítás
             fileList.Clear();
             outputList.Clear();
-
             GetFileLists(searchRoot); //fileList feltöltése
+            outputList = fileList; //outputlist frissítése - itt még minden fájl szerepel
+
             /////////////////////////////////////////////////
+
             TreeViewItem root = FindName("ID_0") as TreeViewItem; //mindig ez a 0-ás!
-            sajtkukac(root);
+
+            GetOutputList(root); //Gyökér TVI-től kiindulás
+
             //backgroundworker-nek hogyan lehetne odaadni a treeview-t? object copy, egyéb?
-       
+            //
+            //klikk-keresés indítása, megnézni a root tipusát (és vagy) => függvény és/vagy ág írás vagy külön külön függvények
+            //  -VAGY függvénynek 3 listára van szüksége : eredeti, részeredmény, végeredmény
+            //  -ÉS függvénynek csak az eredeti listára van szüksége
         }
 
-        private void sajtkukac(TreeViewItem rootTVI)
+        private void GetOutputList(TreeViewItem rootTVI)
         {
             //Get controls
             //If contains TVI -> start again from here (nested)
             //Else - get expression
-            //combine results into one big expression
-            //
-            //return result
+            List<string> subResult = new List<string>(); //csak VAGY-os csoporthoz kell, részeredmény
+            List<string> finalResult = new List<string>(); //csak VAGY-os csoporthoz kell, végeredmény
+            // outputList = végeredmény, eredeti lista VAGY-nál
 
-            foreach (object item in rootTVI.Items)
+            StackPanel rootSP = rootTVI.Header as StackPanel;
+            string mode = "";
+            
+            foreach (ComboBox rootCB in rootSP.Children)
             {
-                if (item is TreeViewItem)//beágyazott csoport
+                mode = rootCB.Text; //ÉS - VAGY
+            }
+            foreach (TreeViewItem childTVI in rootTVI.Items)
+            {
+                GetOutputList(childTVI);
+
+            }//TVI vége
+            foreach (StackPanel childSP in rootTVI.Items)
+            {
+                string subjct = "";
+                string opertr = "";
+                string textToSearch = "";
+                foreach (ComboBox cb in childSP.Children)
                 {
-                    TreeViewItem childTVI = item as TreeViewItem;
-                    sajtkukac(childTVI);
-                }//TVI vége
-                if (item is StackPanel)//tartalmazott kifejezések
-                {
-                    StackPanel childSP = item as StackPanel;
-                    foreach (object spItem in childSP.Children)
+                    switch (cb.Text)
                     {
-                        if (spItem is ComboBox)
+                        //------------------Forrás
+                        case "Fájl neve":
+                            subjct = cb.Text;
+                            break;
+                        case "Fájl tartalma":
+                            subjct = cb.Text;
+                            break;
+                        //-------------------Forrás vége
+                        //-------------------Operátor
+                        case "Tartalmazza":
+                            opertr = cb.Text;
+                            break;
+                        case "Nem tartalmazza":
+                            opertr = cb.Text;
+                            break;
+                        //-------------------Operátor vége
+                        default:
+                            break;
+                    }
+                }
+                foreach (TextBox tb in childSP.Children)
+                {
+                    textToSearch = tb.Text;
+
+                }
+                //KERESÉS ITT!!!!
+                if (mode == "ÉS")
+                {
+                    //outputList-ből kivonogatni a keresés eredményét
+                    if (subjct == "Fájl neve")
+                    {
+                        if (opertr == "Tartalmazza")
                         {
-                            ComboBox cb = spItem as ComboBox;
-                            switch (cb.Text)
+                            foreach (string fileName in outputList)
                             {
-                                //------------------Forrás
-                                case "Fájl neve":
-
-                                    break;
-                                case "Fájl tartalma":
-
-                                    break;
-                                //-------------------Forrás vége
-                                //-------------------Operátor
-                                case "Tartalmazza":
-
-                                    break;
-                                case "Nem tartalmazza":
-
-                                    break;
-                                //case "Megegyezik":
-
-                                //    break;
-                                //case "Nem egyezik meg":
-
-                                //    break;
-                                //case "Kezdődik vele":
-
-                                //    break;
-                                //case "Nem kezdődik vele":
-
-                                //    break;
-                                //case "Véget ér vele":
-
-                                //    break;
-                                //case "Nem ér véget vele":
-
-                                //    break;
-                                //-------------------Operátor vége
-                                default:
-                                    break;
+                                //Fájl név tartalmazza a textToSearch-et
+                                if (!fileName.Contains(textToSearch)) //Ezért, output minusz filenév NEM tartalmazza
+                                {
+                                    outputList.Remove(fileName);
+                                }
                             }
                         }
-                        if (spItem is TextBox)
+                        if (opertr == "Nem tartalmazza")
                         {
-                            TextBox tb = spItem as TextBox;
+                            foreach (string fileName in outputList)
+                            {
+                                //Fájl név NEM tartalmazza a textToSearch-et
+                                if (fileName.Contains(textToSearch)) //Ezért, output minusz filenév tartalmazza
+                                {
+                                    outputList.Remove(fileName);
+                                }
+                            }
+                        }
+                    }
+                    if (subjct == "Fájl tartalma")
+                    {
+                        if(opertr == "Tartalmazza")
+                        {
+                            //Fájl tartalma tartalmazza a textToSearch-et
+                            //Ezért, output minusz filetartalom NEM tartalmazza
+
+                            WordSearch(textToSearch, outputList, true);
+                            
+
 
                         }
-                    }//stackpanel elemeinek vége
+                        if (opertr == "Nem tartalmazza")
+                        {
+                            foreach (string fileName in outputList)
+                            {
+                                //Fájl tartalma NEM tartalmazza a textToSearch-et
+                                //Ezért, output minusz fájltartalom tartalmazza
 
-                }//stackpanel vége
+                                outputList.Remove(fileName);
+                                
+                            }
+                        }
+                    }
+
+                }
+                if (mode == "VAGY")
+                {
+                    //outputList = original
+                    //subResult: subres = original - eredmények ; 
+                    //finalResult: finalResult = subres + subres + subres...
+
+                }
+                //
+            }//stackpanel vége
+            if (mode == "VAGY")
+            {
+                outputList = finalResult;
             }
+            //ÉS-nél csak simán outputlist
         }
 
-
-        
-
     }
-}
+} 
