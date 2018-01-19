@@ -27,7 +27,7 @@ namespace ContentSearcher
     public partial class MainWindow : Window
     {
 
-        string defLocation = @"E:\ZZZ_TESZTMAPPA";
+        string defLocation = @"G:\ZZZ_TESZTMAPPA";
         string searchRoot = string.Empty;
 
         List<string> fileList = new List<string>();
@@ -90,27 +90,45 @@ namespace ContentSearcher
             //Parallel.ForEach(Directory.GetFiles(e.Argument as string), );
         }
 
-        private void WordSearch(string textToSearch, List<string> source, bool shouldContain)
+        private List<string> WordSearch(string textToSearch, List<string> source, bool shouldContain)
         {
             try
             {
-                Word.Application app = new Word.Application();
-                foreach (string file in source)
+                List<string> tempFileList = new List<string>();
+                List<string> tempResultList = new List<string>();
+                bool contained = false;
+                foreach (string str in source) //beolvasás
                 {
+                    if (str.EndsWith(".doc")|str.EndsWith(".docx")) //csak doc és docx
+                    {
+                        tempFileList.Add(str);
+                        tempResultList.Add(str);
+                    }
+                }
+                
+                Word.Application app = new Word.Application();
+                foreach (string file in tempFileList)//csak word fileok
+                {
+                    contained = false;//reset
                     Word.Document doc = app.Documents.Open(file, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing);
                     foreach (Word.Paragraph parag in doc.Paragraphs) // paragrafusok, az egészet kéne nézni, legyen csak egy bool változó, ha volt és a végén a művelet?
                     {
-                        if ((parag.Range.Text.Contains(textToSearch) & !shouldContain) | (!parag.Range.Text.Contains(textToSearch) & shouldContain))
-                        {//HA tartalmazza ÉS NOT Contains kell - VAGY - HA  NEM tartalmazza és Contains kell, akkor
-                            source.Remove(file); //ki fogja így törölni rendesen? TESZT!!!!
+                        if (parag.Range.Text.Contains(textToSearch,StringComparison.OrdinalIgnoreCase))
+                        {
+                            contained = true;
                         }
+                    }
+                    if (contained ^ shouldContain) //contained XOR shouldcontain - kizáró VAGY kell
+                    {
+                        tempResultList.Remove(file); 
                     }
                     doc.Close();
                 }
                 app.Quit();
+                return tempResultList; 
             }
             catch (Exception)
             {
@@ -120,13 +138,25 @@ namespace ContentSearcher
 
         }
 
-        private void ExcelSearch(string textToSearch, List<string> source)
+        private List<string> ExcelSearch(string textToSearch, List<string> source, bool shouldContain)
         {
             try
             {
-                Excel.Application app = new Excel.Application();
-                foreach (string xls in source)
+                List<string> tempFileList = new List<string>();
+                List<string> tempResultList = new List<string>();
+                bool contained = false;
+                foreach (string str in source) //beolvasás
                 {
+                    if (str.EndsWith(".xls") | str.EndsWith(".xlsx")) //csak doc és docx
+                    {
+                        tempFileList.Add(str);
+                        tempResultList.Add(str);
+                    }
+                }
+                Excel.Application app = new Excel.Application();
+                foreach (string xls in tempFileList)
+                {
+                    contained = false;//reset
                     Excel.Workbook wb = app.Workbooks.Open(xls);
                     foreach (Excel.Worksheet sheet in wb.Sheets)
                     {
@@ -138,13 +168,17 @@ namespace ContentSearcher
             missing, missing);
                         if (firstFind != null)
                         {
-
-                            listBoxOutput.Items.Add(xls);
+                            contained = true;
                         }
+                    }
+                    if (contained ^ shouldContain) //contained XOR shouldcontain - kizáró VAGY kell
+                    {
+                        tempResultList.Remove(xls);
                     }
                     wb.Close();
                 }
                 app.Quit();
+                return tempResultList;
             }
             catch (Exception)
             {
@@ -154,22 +188,38 @@ namespace ContentSearcher
 
         }
 
-        private void PdfSearch(string textToSearch, List<string> source)
+        private List<string> PdfSearch(string textToSearch, List<string> source, bool shouldContain)
         {
             try
             {
-                foreach (string pdf in source)
+                List<string> tempFileList = new List<string>();
+                List<string> tempResultList = new List<string>();
+                bool contained = false;
+                foreach (string str in source) //beolvasás
                 {
+                    if (str.EndsWith(".pdf")) //csak doc és docx
+                    {
+                        tempFileList.Add(str);
+                        tempResultList.Add(str);
+                    }
+                }
+                foreach (string pdf in tempFileList)
+                {
+                    contained = false;
                     FileStream stream = File.Open(pdf, FileMode.Open);
                     PdfExtract.Extractor extractor = new PdfExtract.Extractor();
                     string temp = extractor.ExtractToString(stream, Encoding.Default);
-                    if (temp.Contains(textToSearch))
+                    if (temp.Contains(textToSearch, StringComparison.OrdinalIgnoreCase))
                     {
-                        //outputList.Add(pdf);
-                        listBoxOutput.Items.Add(pdf);
+                        contained = true;
                     }
                     stream.Close();
+                    if (contained ^ shouldContain) //contained XOR shouldcontain - kizáró VAGY kell
+                    {
+                        tempResultList.Remove(pdf);
+                    }
                 }
+                return tempResultList;
             }
             catch (Exception)
             {
@@ -547,6 +597,12 @@ namespace ContentSearcher
 
             GetOutputList(root); //Gyökér TVI-től kiindulás
 
+            outputList.Sort();
+            foreach (string fileName in outputList) //eredmény írása
+            {
+                listBoxOutput.Items.Add(fileName);
+            }
+
             //backgroundworker-nek hogyan lehetne odaadni a treeview-t? object copy, egyéb?
             //
             //klikk-keresés indítása, megnézni a root tipusát (és vagy) => függvény és/vagy ág írás vagy külön külön függvények
@@ -566,21 +622,21 @@ namespace ContentSearcher
             StackPanel rootSP = rootTVI.Header as StackPanel;
             string mode = "";
             
-            foreach (ComboBox rootCB in rootSP.Children)
-            {
+            foreach (ComboBox rootCB in rootSP.Children.OfType<ComboBox>())
+            { 
                 mode = rootCB.Text; //ÉS - VAGY
             }
-            foreach (TreeViewItem childTVI in rootTVI.Items)
+            foreach (TreeViewItem childTVI in rootTVI.Items.OfType<TreeViewItem>())
             {
                 GetOutputList(childTVI);
 
             }//TVI vége
-            foreach (StackPanel childSP in rootTVI.Items)
+            foreach (StackPanel childSP in rootTVI.Items.OfType<StackPanel>())
             {
                 string subjct = "";
                 string opertr = "";
                 string textToSearch = "";
-                foreach (ComboBox cb in childSP.Children)
+                foreach (ComboBox cb in childSP.Children.OfType<ComboBox>())
                 {
                     switch (cb.Text)
                     {
@@ -604,7 +660,7 @@ namespace ContentSearcher
                             break;
                     }
                 }
-                foreach (TextBox tb in childSP.Children)
+                foreach (TextBox tb in childSP.Children.OfType<TextBox>())
                 {
                     textToSearch = tb.Text;
 
@@ -615,51 +671,69 @@ namespace ContentSearcher
                     //outputList-ből kivonogatni a keresés eredményét
                     if (subjct == "Fájl neve")
                     {
+                        bool shouldContain = false;
                         if (opertr == "Tartalmazza")
                         {
-                            foreach (string fileName in outputList)
-                            {
-                                //Fájl név tartalmazza a textToSearch-et
-                                if (!fileName.Contains(textToSearch)) //Ezért, output minusz filenév NEM tartalmazza
-                                {
-                                    outputList.Remove(fileName);
-                                }
-                            }
+                            shouldContain = true;
                         }
-                        if (opertr == "Nem tartalmazza")
+                        else if (opertr == "Nem tartalmazza")
                         {
-                            foreach (string fileName in outputList)
+                            shouldContain = false;
+                        }
+                        List<string> tempList = new List<string>(); //kell ideiglenes a törlés és foreach miatt!
+                        foreach (string str in outputList)
+                        {
+                            tempList.Add(str);
+                        }
+                        foreach (string fileName in outputList)
+                        {
+                            bool contained = false;
+                            //Fájl név tartalmazza a textToSearch-et
+                            if (fileName.Contains(textToSearch, StringComparison.OrdinalIgnoreCase)) //Ezért, output minusz filenév NEM tartalmazza
                             {
-                                //Fájl név NEM tartalmazza a textToSearch-et
-                                if (fileName.Contains(textToSearch)) //Ezért, output minusz filenév tartalmazza
-                                {
-                                    outputList.Remove(fileName);
-                                }
+                                contained = true;
+                            }
+                            if (contained ^ shouldContain) //XOR
+                            {
+                                tempList.Remove(fileName);
                             }
                         }
+                        outputList = tempList; //eredmény visszaírása    
+
                     }
                     if (subjct == "Fájl tartalma")
                     {
+                        bool shouldContain = false;
                         if(opertr == "Tartalmazza")
                         {
-                            //Fájl tartalma tartalmazza a textToSearch-et
-                            //Ezért, output minusz filetartalom NEM tartalmazza
-
-                            WordSearch(textToSearch, outputList, true);
-                            
-
-
+                            shouldContain = true;
                         }
-                        if (opertr == "Nem tartalmazza")
+                        else if (opertr == "Nem tartalmazza")
                         {
-                            foreach (string fileName in outputList)
-                            {
-                                //Fájl tartalma NEM tartalmazza a textToSearch-et
-                                //Ezért, output minusz fájltartalom tartalmazza
-
-                                outputList.Remove(fileName);
-                                
-                            }
+                            shouldContain = false;
+                        }
+                        //Fájl tartalma tartalmazza a textToSearch-et
+                        //Ezért, output minusz filetartalom NEM tartalmazza
+                        List<string> tempList = new List<string>();
+                        foreach (string str in outputList)
+                        {
+                            tempList.Add(str);
+                        }
+                        outputList.Clear();
+                        //Word
+                        foreach (string fileName in WordSearch(textToSearch, tempList, shouldContain))
+                        {
+                            outputList.Add(fileName);
+                        }
+                        //Excel
+                        foreach (string fileName in ExcelSearch(textToSearch, tempList, shouldContain))
+                        {
+                            outputList.Add(fileName);
+                        }
+                        //PDF
+                        foreach (string fileName in PdfSearch(textToSearch, tempList, shouldContain))
+                        {
+                            outputList.Add(fileName);
                         }
                     }
 
@@ -678,7 +752,16 @@ namespace ContentSearcher
                 outputList = finalResult;
             }
             //ÉS-nél csak simán outputlist
+
+            
         }
 
+    }
+    public static class StringExtensions
+    {
+        public static bool Contains(this string source, string toCheck, StringComparison comp)
+        {
+            return source?.IndexOf(toCheck, comp) >= 0;
+        }
     }
 } 
