@@ -56,7 +56,7 @@ namespace ContentSearcher
             ListFillUp(); //combobox-ok listájának feltöltése
             AddRootGroup(); //treeview gyökér item
 
-            textBoxSearch.Text = defLocation; //DEBUG
+            //textBoxSearch.Text = defLocation; //DEBUG
 
         }
 
