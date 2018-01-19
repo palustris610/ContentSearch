@@ -33,7 +33,6 @@ namespace ContentSearcher
         List<string> fileList = new List<string>();
 
         List<string> outputList = new List<string>(); //végeredmény
-        //List<string> subresultList = new List<string>(); //köztes eredmény
 
         BackgroundWorker bw = new BackgroundWorker();
 
@@ -178,6 +177,7 @@ namespace ContentSearcher
                     wb.Close();
                 }
                 app.Quit();
+
                 return tempResultList;
             }
             catch (Exception)
@@ -251,7 +251,6 @@ namespace ContentSearcher
             }//foreach end
 
         }
-
 
         private void AddRootGroup() //treeview item a kattintott treeview item alá! add line, add group, remove group
         {
@@ -589,7 +588,10 @@ namespace ContentSearcher
             fileList.Clear();
             outputList.Clear();
             GetFileLists(searchRoot); //fileList feltöltése
-            outputList = fileList; //outputlist frissítése - itt még minden fájl szerepel
+            foreach (string fileName in fileList)//outputlist frissítése - itt még minden fájl szerepel
+            {
+                outputList.Add(fileName);
+            }
 
             /////////////////////////////////////////////////
 
@@ -600,7 +602,10 @@ namespace ContentSearcher
             outputList.Sort();
             foreach (string fileName in outputList) //eredmény írása
             {
-                listBoxOutput.Items.Add(fileName);
+                TextBlock tb = new TextBlock();
+                tb.Text = fileName;
+                tb.PreviewMouseRightButtonDown += Tb_PreviewMouseRightButtonDown;
+                listBoxOutput.Items.Add(tb);
             }
 
             //backgroundworker-nek hogyan lehetne odaadni a treeview-t? object copy, egyéb?
@@ -610,12 +615,13 @@ namespace ContentSearcher
             //  -ÉS függvénynek csak az eredeti listára van szüksége
         }
 
+        
+
         private void GetOutputList(TreeViewItem rootTVI)
         {
             //Get controls
             //If contains TVI -> start again from here (nested)
             //Else - get expression
-            List<string> subResult = new List<string>(); //csak VAGY-os csoporthoz kell, részeredmény
             List<string> finalResult = new List<string>(); //csak VAGY-os csoporthoz kell, végeredmény
             // outputList = végeredmény, eredeti lista VAGY-nál
 
@@ -741,21 +747,172 @@ namespace ContentSearcher
                 if (mode == "VAGY")
                 {
                     //outputList = original
-                    //subResult: subres = original - eredmények ; 
                     //finalResult: finalResult = subres + subres + subres...
+                    //finalResult if contains dont add, if not contained-add
+                    if (subjct == "Fájl neve")
+                    {
+                        bool shouldContain = false;
+                        if (opertr == "Tartalmazza")
+                        {
+                            shouldContain = true;
+                        }
+                        else if (opertr == "Nem tartalmazza")
+                        {
+                            shouldContain = false;
+                        }
+                        List<string> tempList = new List<string>(); //kell ideiglenes a törlés és foreach miatt!
 
-                }
+                        foreach (string fileName in fileList)
+                        {
+                            bool contained = false;
+                            //Fájl név tartalmazza a textToSearch-et
+                            if (fileName.Contains(textToSearch, StringComparison.OrdinalIgnoreCase)) //Ezért, output minusz filenév NEM tartalmazza
+                            {
+                                contained = true;
+                            }
+                            if (!(contained ^ shouldContain)) //NOT XOR = AB vagy !A!B
+                            {
+                                tempList.Add(fileName);
+                            }
+                        }
+                        foreach (string fileName in tempList)//eredmény visszaírása  
+                        {
+                            if (!finalResult.Contains(fileName))
+                            {
+                                finalResult.Add(fileName); //hozzáadni az igaz eredményt
+                            }
+                        }
+                    }//fájl név vége
+                    if (subjct == "Fájl tartalma")
+                    {
+                        bool shouldContain = false;
+                        if (opertr == "Tartalmazza")
+                        {
+                            shouldContain = true;
+                        }
+                        else if (opertr == "Nem tartalmazza")
+                        {
+                            shouldContain = false;
+                        }
+                        //Fájl tartalma tartalmazza a textToSearch-et
+                        //Ezért, output minusz filetartalom NEM tartalmazza
+                        List<string> tempList = new List<string>();
+
+                        //Word
+                        foreach (string fileName in WordSearch(textToSearch, fileList, shouldContain))
+                        {
+                            tempList.Add(fileName);
+                        }
+                        //Excel
+                        foreach (string fileName in ExcelSearch(textToSearch, fileList, shouldContain))
+                        {
+                            tempList.Add(fileName);
+                        }
+                        //PDF
+                        foreach (string fileName in PdfSearch(textToSearch, fileList, shouldContain))
+                        {
+                            tempList.Add(fileName);
+                        }
+                        foreach (string fileName in tempList)//eredmény visszaírása  
+                        {
+                            if (!finalResult.Contains(fileName))
+                            {
+                                finalResult.Add(fileName); //hozzáadni az igaz eredményt
+                            }
+                        }
+                    }
+
+                }//VAGY vége
                 //
             }//stackpanel vége
             if (mode == "VAGY")
             {
-                outputList = finalResult;
+                foreach (string fileName in finalResult)
+                {
+                    if (!outputList.Contains(fileName))
+                    {
+                        outputList.Add(fileName);
+                    }
+
+                }
+                //outputList = finalResult;
             }
             //ÉS-nél csak simán outputlist
 
             
         }
 
+        private void Tb_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender == null)
+            {
+                return;
+            }
+
+            object childobject = sender;
+            while (!(childobject is ListBox))
+            {
+                childobject = VisualTreeHelper.GetParent(childobject as DependencyObject);
+            }
+            ListBox lb = childobject as ListBox;
+            lb.SelectedItem = sender;
+            // context menü
+            ContextMenu cm = new ContextMenu();
+            MenuItem mi1 = new MenuItem();
+            MenuItem mi2 = new MenuItem();
+
+            mi1.Header = "Fájl helyének megnyitása";
+            mi1.FontWeight = FontWeights.Bold;
+            mi2.Header = "Fájl megnyitása";
+
+            mi1.Click += Mi1_Click;
+            mi2.Click += Mi2_Click;
+
+            cm.Items.Add(mi1);
+            cm.Items.Add(mi2);
+
+            cm.PlacementTarget = sender as TextBlock;
+            cm.IsOpen = true;
+        }
+
+        private void Mi1_Click(object sender, RoutedEventArgs e) //fájl helye 
+        {
+            if (listBoxOutput.SelectedValue != null)
+            {
+                TextBlock tb = listBoxOutput.SelectedItem as TextBlock;
+                string fileToView = tb.Text;
+                fileToView = fileToView.Remove(fileToView.LastIndexOf("\\") + 1);
+                System.Diagnostics.Process.Start(fileToView);
+            }
+        }
+
+        private void Mi2_Click(object sender, RoutedEventArgs e) //fájl maga
+        {
+            if (listBoxOutput.SelectedValue != null)
+            {
+                TextBlock tb = listBoxOutput.SelectedItem as TextBlock;
+                string fileToView = tb.Text;
+                //fileToView = fileToView.Remove(fileToView.LastIndexOf("\\") + 1);
+                System.Diagnostics.Process.Start(fileToView);
+            }
+        }
+
+        private void listBoxOutput_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            //duplakatt
+            if (listBoxOutput.SelectedValue != null)
+            {
+                TextBlock tb = listBoxOutput.SelectedItem as TextBlock;
+                string fileToView = tb.Text;
+                fileToView = fileToView.Remove(fileToView.LastIndexOf("\\")+1);
+                System.Diagnostics.Process.Start(fileToView);
+            }
+        }
+
+        private void listBoxOutput_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            listBoxOutput.UnselectAll();
+        }
     }
     public static class StringExtensions
     {
