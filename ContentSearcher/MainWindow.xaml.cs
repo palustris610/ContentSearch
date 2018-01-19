@@ -56,7 +56,7 @@ namespace ContentSearcher
             ListFillUp(); //combobox-ok listájának feltöltése
             AddRootGroup(); //treeview gyökér item
 
-            //textBoxSearch.Text = defLocation; //DEBUG
+            textBoxSearch.Text = defLocation; //DEBUG
 
         }
 
@@ -89,6 +89,32 @@ namespace ContentSearcher
             //Parallel.ForEach(Directory.GetFiles(e.Argument as string), );
         }
 
+        protected virtual bool IsFileLocked(FileInfo file)
+        {
+            FileStream stream = null;
+
+            try
+            {
+                stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None);
+            }
+            catch (IOException)
+            {
+                //the file is unavailable because it is:
+                //still being written to
+                //or being processed by another thread
+                //or does not exist (has already been processed)
+                return true;
+            }
+            finally
+            {
+                if (stream != null)
+                    stream.Close();
+            }
+
+            //file is not locked
+            return false;
+        }
+
         private List<string> WordSearch(string textToSearch, List<string> source, bool shouldContain)
         {
             try
@@ -106,9 +132,15 @@ namespace ContentSearcher
                 }
                 
                 Word.Application app = new Word.Application();
+                
                 foreach (string file in tempFileList)//csak word fileok
                 {
                     contained = false;//reset
+                    if (IsFileLocked(new FileInfo(file)))
+                    {
+                        app.Quit();
+                        throw new Exception("Fájl használatban van.");
+                    }
                     Word.Document doc = app.Documents.Open(file, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing, Type.Missing, Type.Missing,
             Type.Missing, Type.Missing, Type.Missing, Type.Missing,
@@ -129,10 +161,10 @@ namespace ContentSearcher
                 app.Quit();
                 return tempResultList; 
             }
-            catch (Exception)
+            catch (Exception exc)
             {
-
-                throw;
+                MessageBox.Show(exc.ToString());
+                return new List<string>();
             }
 
         }
@@ -156,6 +188,11 @@ namespace ContentSearcher
                 foreach (string xls in tempFileList)
                 {
                     contained = false;//reset
+                    if (IsFileLocked(new FileInfo(xls)))
+                    {
+                        app.Quit();
+                        throw new Exception("Fájl használatban van.");
+                    }
                     Excel.Workbook wb = app.Workbooks.Open(xls);
                     foreach (Excel.Worksheet sheet in wb.Sheets)
                     {
@@ -180,10 +217,10 @@ namespace ContentSearcher
 
                 return tempResultList;
             }
-            catch (Exception)
+            catch (Exception exc)
             {
-
-                throw;
+                MessageBox.Show(exc.ToString());
+                return new List<string>();
             }
 
         }
@@ -206,6 +243,10 @@ namespace ContentSearcher
                 foreach (string pdf in tempFileList)
                 {
                     contained = false;
+                    if (IsFileLocked(new FileInfo(pdf)))
+                    {
+                        throw new Exception("Fájl használatban van.");
+                    }
                     FileStream stream = File.Open(pdf, FileMode.Open);
                     PdfExtract.Extractor extractor = new PdfExtract.Extractor();
                     string temp = extractor.ExtractToString(stream, Encoding.Default);
@@ -221,34 +262,43 @@ namespace ContentSearcher
                 }
                 return tempResultList;
             }
-            catch (Exception)
+            catch (Exception exc)
             {
-
-                throw;
+                MessageBox.Show(exc.ToString());
+                return new List<string>();
             }
         }
 
         private void GetFileLists(string dir) // az összes felhasználható fájl listája pdf, word, excel
         {
-            foreach (string subdir in Directory.GetDirectories(dir))
+            try
             {
-                GetFileLists(subdir);
+                foreach (string subdir in Directory.GetDirectories(dir))
+                {
+                    GetFileLists(subdir);
+                }
+                foreach (string fileName in Directory.GetFiles(dir))
+                {
+                    if (fileName.EndsWith(".doc") | fileName.EndsWith(".docx"))
+                    {
+                        fileList.Add(fileName);
+                    }
+                    if (fileName.EndsWith(".xls") | fileName.EndsWith(".xlsx"))
+                    {
+                        fileList.Add(fileName);
+                    }
+                    if (fileName.EndsWith(".pdf"))
+                    {
+                        fileList.Add(fileName);
+                    }
+                }//foreach end
             }
-            foreach (string fileName in Directory.GetFiles(dir))
+            catch (Exception exc)
             {
-                if (fileName.EndsWith(".doc") | fileName.EndsWith(".docx"))
-                {
-                    fileList.Add(fileName);
-                }
-                if (fileName.EndsWith(".xls") | fileName.EndsWith(".xlsx"))
-                {
-                    fileList.Add(fileName);
-                }
-                if (fileName.EndsWith(".pdf"))
-                {
-                    fileList.Add(fileName);
-                }
-            }//foreach end
+                MessageBox.Show(exc.ToString());
+                Environment.Exit(0); //hiba miatt bezárni a progit
+            }
+            
 
         }
 
@@ -276,6 +326,9 @@ namespace ContentSearcher
             cb_logic.Width = comboboxWidth;
             bt_AddGroup.Width = buttonWidth;
             bt_AddLine.Width = buttonWidth;
+            cb_logic.ToolTip = "Csoport logikai művelete";
+            bt_AddGroup.ToolTip = "Csoport hozzáadása";
+            bt_AddLine.ToolTip = "Elem hozzáadása";
 
             bt_AddGroup.Background = Brushes.LawnGreen;
             bt_AddLine.Background = Brushes.LightGreen;
@@ -339,6 +392,11 @@ namespace ContentSearcher
             bt_AddGroup.Width = buttonWidth;
             bt_AddLine.Width = buttonWidth;
             bt_RemoveGroup.Width = buttonWidth;
+
+            cb_logic.ToolTip = "Csoport logikai művelete";
+            bt_AddGroup.ToolTip = "Csoport hozzáadása";
+            bt_AddLine.ToolTip = "Elem hozzáadása";
+            bt_RemoveGroup.ToolTip = "Csoport törlése";
 
             bt_AddGroup.FontWeight = FontWeights.Bold;
             bt_AddLine.FontWeight = FontWeights.Bold;
@@ -433,6 +491,11 @@ namespace ContentSearcher
             cb_subject.Width = subjectWidth;
             bt_delete.Width = buttonWidth;
             tb_expression.Width = expressionWidth;
+
+            cb_subject.ToolTip = "Keresés helye";
+            cb_operator.ToolTip = "Elem logikai művelete";
+            tb_expression.ToolTip = "Keresendő kifejezés";
+            bt_delete.ToolTip = "Elem törlése";
 
             //cb_logic.Margin = thickness;
             cb_operator.Margin = thickness;
