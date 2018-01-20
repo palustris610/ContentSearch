@@ -124,15 +124,15 @@ namespace ContentSearcher
                 bool contained = false;
                 foreach (string str in source) //beolvasás
                 {
-                    if (str.EndsWith(".doc")|str.EndsWith(".docx")) //csak doc és docx
+                    if (str.EndsWith(".doc") | str.EndsWith(".docx")) //csak doc és docx
                     {
                         tempFileList.Add(str);
                         tempResultList.Add(str);
                     }
                 }
-                
+
                 Word.Application app = new Word.Application();
-                
+
                 foreach (string file in tempFileList)//csak word fileok
                 {
                     contained = false;//reset
@@ -147,19 +147,19 @@ namespace ContentSearcher
             Type.Missing, Type.Missing);
                     foreach (Word.Paragraph parag in doc.Paragraphs) // paragrafusok, az egészet kéne nézni, legyen csak egy bool változó, ha volt és a végén a művelet?
                     {
-                        if (parag.Range.Text.Contains(textToSearch,StringComparison.OrdinalIgnoreCase))
+                        if (parag.Range.Text.Contains(textToSearch, StringComparison.OrdinalIgnoreCase))
                         {
                             contained = true;
                         }
                     }
                     if (contained ^ shouldContain) //contained XOR shouldcontain - kizáró VAGY kell
                     {
-                        tempResultList.Remove(file); 
+                        tempResultList.Remove(file);
                     }
                     doc.Close();
                 }
                 app.Quit();
-                return tempResultList; 
+                return tempResultList;
             }
             catch (Exception exc)
             {
@@ -298,7 +298,7 @@ namespace ContentSearcher
                 MessageBox.Show(exc.ToString());
                 Environment.Exit(0); //hiba miatt bezárni a progit
             }
-            
+
 
         }
 
@@ -678,7 +678,7 @@ namespace ContentSearcher
             //  -ÉS függvénynek csak az eredeti listára van szüksége
         }
 
-        
+
 
         private void GetOutputList(TreeViewItem rootTVI)
         {
@@ -690,9 +690,9 @@ namespace ContentSearcher
 
             StackPanel rootSP = rootTVI.Header as StackPanel;
             string mode = "";
-            
+
             foreach (ComboBox rootCB in rootSP.Children.OfType<ComboBox>())
-            { 
+            {
                 mode = rootCB.Text; //ÉS - VAGY
             }
             foreach (TreeViewItem childTVI in rootTVI.Items.OfType<TreeViewItem>())
@@ -773,7 +773,7 @@ namespace ContentSearcher
                     if (subjct == "Fájl tartalma")
                     {
                         bool shouldContain = false;
-                        if(opertr == "Tartalmazza")
+                        if (opertr == "Tartalmazza")
                         {
                             shouldContain = true;
                         }
@@ -902,7 +902,7 @@ namespace ContentSearcher
             }
             //ÉS-nél csak simán outputlist
 
-            
+
         }
 
         private void Tb_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -967,7 +967,7 @@ namespace ContentSearcher
             {
                 TextBlock tb = listBoxOutput.SelectedItem as TextBlock;
                 string fileToView = tb.Text;
-                fileToView = fileToView.Remove(fileToView.LastIndexOf("\\")+1);
+                fileToView = fileToView.Remove(fileToView.LastIndexOf("\\") + 1);
                 System.Diagnostics.Process.Start(fileToView);
             }
         }
@@ -984,4 +984,4 @@ namespace ContentSearcher
             return source?.IndexOf(toCheck, comp) >= 0;
         }
     }
-} 
+}
